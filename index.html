@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verity — AI-Assisted Evidence Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0b0620;
+    --bg-mid: #1b0b3e;
+    --panel: rgba(255,255,255,0.045);
+    --panel-border: rgba(255,255,255,0.09);
+    --violet: #7c3aed;
+    --violet-soft: #a78bfa;
+    --magenta: #e0299d;
+    --text: #f5f3ff;
+    --text-dim: #a89bc9;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --bad: #fb7185;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+  h1, h2, .display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+
+  .bg-scene {
+    position: fixed; inset: 0; z-index: -3;
+    background: radial-gradient(ellipse 120% 80% at 50% -10%, var(--bg-mid), var(--bg-deep) 60%);
+  }
+  .blob {
+    position: fixed; border-radius: 50%; filter: blur(90px); z-index: -2; opacity: 0.5;
+    animation: drift 22s ease-in-out infinite;
+  }
+  .blob1 { width: 480px; height: 480px; background: var(--violet); top: -120px; left: -100px; animation-delay: 0s; }
+  .blob2 { width: 420px; height: 420px; background: var(--magenta); top: 300px; right: -140px; animation-delay: -7s; }
+  .blob3 { width: 380px; height: 380px; background: #4c1d95; bottom: -160px; left: 30%; animation-delay: -14s; }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(40px, -30px) scale(1.08); }
+    66% { transform: translate(-30px, 25px) scale(0.95); }
+  }
+  .grain {
+    position: fixed; inset: 0; z-index: -1; opacity: 0.05; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .dotgrid {
+    position: fixed; inset: 0; z-index: -1; opacity: 0.15; pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px);
+    background-size: 34px 34px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, black, transparent 70%);
+  }
+
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px;
+    background: rgba(11,6,32,0.65);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 17px; letter-spacing: -0.01em; }
+  .logo-mark {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--violet), var(--magenta));
+  }
+  .nav-links { display: flex; gap: 34px; font-size: 14.5px; color: var(--text-dim); }
+  .nav-links a { color: inherit; text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    font-size: 14px; font-weight: 600; color: var(--bg-deep);
+    background: linear-gradient(135deg, var(--violet-soft), var(--magenta));
+    padding: 9px 18px; border-radius: 8px; text-decoration: none;
+    transition: box-shadow 0.25s, transform 0.2s;
+  }
+  .nav-cta:hover { box-shadow: 0 6px 24px rgba(224,41,157,0.45); transform: translateY(-1px); }
+  @media (max-width: 780px) { .nav-links { display: none; } }
+
+  .hero {
+    max-width: 1180px; margin: 0 auto;
+    padding: 90px 40px 60px;
+    display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 50px; align-items: center;
+  }
+  .hero-copy { opacity: 0; transform: translateY(16px); animation: rise 0.7s ease-out forwards; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--violet-soft);
+    background: var(--panel); border: 1px solid var(--panel-border);
+    padding: 6px 13px; border-radius: 100px; margin-bottom: 22px;
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .hero h1 {
+    font-size: 58px; font-weight: 700; line-height: 1.06; letter-spacing: -0.02em;
+    margin-bottom: 22px;
+  }
+  .hero h1 .grad {
+    background: linear-gradient(120deg, var(--violet-soft), var(--magenta));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.sub {
+    font-size: 18px; color: var(--text-dim); line-height: 1.65; max-width: 480px; margin-bottom: 34px;
+  }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn-primary {
+    font-family: 'Inter'; font-weight: 600; font-size: 15px; color: white;
+    background: linear-gradient(135deg, var(--violet), var(--magenta));
+    border: none; padding: 14px 26px; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 8px 30px rgba(124,58,237,0.35);
+    transition: transform 0.2s, box-shadow 0.25s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(224,41,157,0.5); }
+  .btn-ghost {
+    font-family: 'Inter'; font-weight: 600; font-size: 15px; color: var(--text);
+    background: transparent; border: 1px solid var(--panel-border);
+    padding: 14px 24px; border-radius: 10px; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    text-decoration: none; display: inline-block;
+  }
+  .btn-ghost:hover { border-color: var(--violet-soft); background: rgba(124,58,237,0.08); }
+
+  .hero-visual { opacity: 0; transform: translateY(16px); animation: rise 0.7s ease-out 0.2s forwards; perspective: 800px; }
+  .mock-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    padding: 26px;
+    transform: rotate(3deg);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 60px rgba(124,58,237,0.15);
+    backdrop-filter: blur(20px);
+  }
+  .mock-card .mtop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .mock-card .mtop .fname { font-size: 12.5px; color: var(--text-dim); }
+  .mock-card .mtop .ftype { font-size: 11px; color: var(--violet-soft); background: rgba(124,58,237,0.15); padding: 3px 9px; border-radius: 6px; }
+  .mock-score { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .mock-score .num { font-family: 'Space Grotesk'; font-size: 52px; font-weight: 700; color: var(--ok); }
+  .mock-score .max { font-size: 16px; color: var(--text-dim); }
+  .mock-verdict { font-size: 14px; color: var(--ok); font-weight: 600; margin-bottom: 22px; }
+  .mock-bars { display: flex; flex-direction: column; gap: 10px; }
+  .mock-bar { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-dim); }
+  .mock-bar .track { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .mock-bar .fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--violet), var(--violet-soft)); }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding-top: 60px; }
+    .hero h1 { font-size: 40px; }
+    .mock-card { transform: rotate(0deg); }
+  }
+
+  .stats { max-width: 1180px; margin: 20px auto 0; padding: 0 40px; }
+  .stats-inner {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--panel-border);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .stat { background: rgba(11,6,32,0.7); padding: 26px 28px; }
+  .stat .n { font-family: 'Space Grotesk'; font-size: 28px; font-weight: 700; color: var(--text); }
+  .stat .l { font-size: 13.5px; color: var(--text-dim); margin-top: 4px; }
+  @media (max-width: 700px) { .stats-inner { grid-template-columns: 1fr; } }
+
+  .section { max-width: 1180px; margin: 0 auto; padding: 110px 40px 40px; }
+  .section-head { max-width: 560px; margin-bottom: 56px; }
+  .section-head h2 { font-size: 34px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 14px; }
+  .section-head p { font-size: 16px; color: var(--text-dim); line-height: 1.6; }
+
+  .flow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .flow-step {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 16px;
+    padding: 28px;
+  }
+  .flow-step .k { font-family: 'Space Grotesk'; font-size: 13px; color: var(--magenta); margin-bottom: 14px; }
+  .flow-step h3 { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+  .flow-step p { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+  @media (max-width: 780px) { .flow { grid-template-columns: 1fr; } }
+
+  .tool-section { max-width: 720px; margin: 0 auto; padding: 40px 40px 20px; }
+  .tool-card {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 20px;
+    padding: 40px 34px;
+  }
+  .tool-card > p.hint { text-align: center; font-size: 14px; color: var(--text-dim); margin-bottom: 22px; }
+  .file-row { display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap; }
+  input[type="file"] { font-size: 13px; color: var(--text-dim); max-width: 240px; }
+  input[type="file"]::file-selector-button {
+    font-family: 'Inter'; font-weight: 600; background: rgba(255,255,255,0.06); color: var(--text);
+    border: 1px solid var(--panel-border); padding: 9px 15px; border-radius: 8px; cursor: pointer; margin-right: 10px;
+    transition: background 0.2s;
+  }
+  input[type="file"]::file-selector-button:hover { background: rgba(255,255,255,0.12); }
+  #loading, #loadingCompare { display: none; text-align: center; margin-top: 24px; font-size: 13.5px; color: var(--violet-soft); }
+  #result, #resultCompare { display: none; margin-top: 32px; }
+
+  .verdict-row { display: flex; align-items: center; gap: 22px; padding-bottom: 26px; border-bottom: 1px solid var(--panel-border); margin-bottom: 26px; }
+  .score-circle {
+    width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 3px solid;
+  }
+  .score-circle .num { font-family: 'Space Grotesk'; font-size: 24px; font-weight: 700; line-height: 1; }
+  .score-circle .max { font-size: 9.5px; opacity: 0.7; }
+  .verified { color: var(--ok); border-color: var(--ok); }
+  .caution { color: var(--warn); border-color: var(--warn); }
+  .risk { color: var(--bad); border-color: var(--bad); }
+  .verdict-title { font-size: 19px; font-weight: 600; }
+
+  .info-row { margin-bottom: 22px; }
+  .info-row .label { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  .info-row .value { font-size: 14.5px; word-break: break-word; }
+  .info-row .hash { font-family: monospace; font-size: 12px; color: var(--text-dim); word-break: break-all; }
+
+  .findings { list-style: none; }
+  .findings li {
+    font-size: 14px; line-height: 1.55; padding: 10px 14px; border-radius: 10px;
+    background: rgba(255,255,255,0.03); margin-bottom: 8px; border-left: 3px solid var(--panel-border);
+  }
+  .findings li.flag { border-left-color: var(--warn); }
+  .findings li.severe { border-left-color: var(--bad); }
+
+  .exhibit img { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid var(--panel-border); }
+  .exhibit .cap { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+  /* ---- compare section ---- */
+  .compare-inputs { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+  .compare-input-group {
+    flex: 1; min-width: 220px; border: 1px dashed var(--panel-border); border-radius: 12px;
+    padding: 18px; text-align: center;
+  }
+  .compare-input-group .tag { font-size: 11.5px; color: var(--violet-soft); margin-bottom: 10px; letter-spacing: 0.03em; }
+  .compare-input-group input[type="file"] { max-width: 100%; }
+  .compare-btn-row { text-align: center; margin-top: 6px; }
+  .identical-banner {
+    text-align: center; padding: 22px; border-radius: 12px;
+    background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.3); color: var(--ok);
+    font-size: 15px; font-weight: 600;
+  }
+  .diff-note { font-size: 14.5px; color: var(--text); margin-bottom: 16px; line-height: 1.6; }
+
+  footer {
+    text-align: center; padding: 40px 20px 50px; color: var(--text-dim); font-size: 13px;
+    border-top: 1px solid var(--panel-border); margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-scene"></div>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+<div class="dotgrid"></div>
+<div class="grain"></div>
+
+<nav>
+  <div class="logo"><div class="logo-mark"></div>Verity</div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#tool">Analyze a file</a>
+    <a href="#compare">Compare files</a>
+    <a href="#about">PR-ASCEND</a>
+  </div>
+  <a href="#tool" class="nav-cta">Try it free</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-copy">
+    <div class="badge"><span class="dot"></span> Built for NEXORA 2026 · PR-ASCEND</div>
+    <h1>Know what's real<br>before you <span class="grad">trust it.</span></h1>
+    <p class="sub">Verity checks a photo or document's cryptographic fingerprint, hidden metadata, and pixel-level compression pattern — then explains exactly what it found, in plain English.</p>
+    <div class="hero-actions">
+      <a href="#tool" class="btn-primary">Analyze a file →</a>
+      <a href="#how" class="btn-ghost">See how it works</a>
+    </div>
+  </div>
+
+  <div class="hero-visual">
+    <div class="mock-card">
+      <div class="mtop">
+        <span class="fname">receipt_0231.jpg</span>
+        <span class="ftype">IMAGE</span>
+      </div>
+      <div class="mock-score"><span class="num">92</span><span class="max">/ 100</span></div>
+      <div class="mock-verdict">Likely Authentic</div>
+      <div class="mock-bars">
+        <div class="mock-bar">SHA-256 fingerprint<div class="track"><div class="fill" style="width:100%"></div></div></div>
+        <div class="mock-bar">Metadata check<div class="track"><div class="fill" style="width:88%"></div></div></div>
+        <div class="mock-bar">Visual (ELA) scan<div class="track"><div class="fill" style="width:95%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="stats">
+  <div class="stats-inner">
+    <div class="stat"><div class="n">3</div><div class="l">independent detection layers combined per file</div></div>
+    <div class="stat"><div class="n">SHA-256</div><div class="l">tamper-evident fingerprint on every upload</div></div>
+    <div class="stat"><div class="n">JPG · PNG · PDF</div><div class="l">images and documents both supported</div></div>
+  </div>
+</div>
+
+<section class="section" id="how">
+  <div class="section-head">
+    <h2>Three checks, one honest score</h2>
+    <p>No single signal proves tampering on its own — so Verity runs all three and only flags a file when the evidence adds up.</p>
+  </div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="k">Step 1</div>
+      <h3>Fingerprint it</h3>
+      <p>A SHA-256 hash is generated the moment a file is uploaded — a unique signature that changes completely if even one pixel is altered later.</p>
+    </div>
+    <div class="flow-step">
+      <div class="k">Step 2</div>
+      <h3>Read the metadata</h3>
+      <p>Hidden EXIF and document fields are inspected for editing-software signatures and mismatched creation vs. modification dates.</p>
+    </div>
+    <div class="flow-step">
+      <div class="k">Step 3</div>
+      <h3>Scan the pixels</h3>
+      <p>Error Level Analysis re-compresses the image and compares it to the original — localized edits light up as compression outliers.</p>
+    </div>
+  </div>
+</section>
+
+<section class="tool-section" id="tool">
+  <div class="tool-card">
+    <p class="hint">Upload an image (JPG/PNG) or document (PDF) to analyze</p>
+    <div class="file-row">
+      <input type="file" id="fileInput" accept="image/*,.pdf">
+      <button class="btn-primary" id="analyzeBtn" onclick="uploadFile()" style="border:none;">Analyze</button>
+    </div>
+    <p id="loading">Analyzing file…</p>
+    <div id="result"></div>
+  </div>
+</section>
+
+<section class="tool-section" id="compare">
+  <div class="tool-card">
+    <p class="hint">Compare two files — an original and a suspected edited version</p>
+    <div class="compare-inputs">
+      <div class="compare-input-group">
+        <div class="tag">ORIGINAL</div>
+        <input type="file" id="fileA" accept="image/*">
+      </div>
+      <div class="compare-input-group">
+        <div class="tag">SUSPECTED EDITED</div>
+        <input type="file" id="fileB" accept="image/*">
+      </div>
+    </div>
+    <div class="compare-btn-row">
+      <button class="btn-primary" id="compareBtn" onclick="compareFiles()" style="border:none;">Compare</button>
+    </div>
+    <p id="loadingCompare">Comparing files…</p>
+    <div id="resultCompare"></div>
+  </div>
+</section>
+
+<footer id="about">NEXORA 2026 Innovation Hackathon — Problem Statement PR-ASCEND: AI-Assisted Digital Evidence Verification &amp; Tamper Detection</footer>
+
+<script>
+  async function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+    const resultDiv = document.getElementById('result');
+    const loading = document.getElementById('loading');
+    const btn = document.getElementById('analyzeBtn');
+
+    if (!fileInput.files.length) { alert("Choose a file first."); return; }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    resultDiv.style.display = 'none';
+    loading.style.display = 'block';
+    btn.disabled = true;
+
+    const response = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await response.json();
+
+    loading.style.display = 'none';
+    btn.disabled = false;
+    resultDiv.style.display = 'block';
+
+    let tone = 'verified';
+    if (data.trust_score < 50) tone = 'risk';
+    else if (data.trust_score < 80) tone = 'caution';
+
+    const findingsHtml = data.score_breakdown.map(r => {
+      const isSevere = r.startsWith('-2') || r.startsWith('-3');
+      const isFlag = r.startsWith('-1');
+      const cls = isSevere ? 'severe' : (isFlag ? 'flag' : '');
+      return `<li class="${cls}">${r}</li>`;
+    }).join('');
+
+    const exhibitHtml = data.ela_image_url ? `
+      <div class="info-row exhibit">
+        <div class="label">VISUAL ANALYSIS (ELA)</div>
+        <img src="${data.ela_image_url}">
+        <div class="cap">Bright regions indicate compression inconsistency, often localized to edited areas.</div>
+      </div>` : '';
+
+    const detailsHtml = (data.metadata_findings && data.metadata_findings.length) ? `
+      <div class="info-row">
+        <div class="label">TECHNICAL DETAILS</div>
+        <ul class="findings">${data.metadata_findings.map(m => `<li>${m}</li>`).join('')}</ul>
+      </div>` : '';
+
+    resultDiv.innerHTML = `
+      <div class="verdict-row">
+        <div class="score-circle ${tone}">
+          <div class="num">${data.trust_score}</div>
+          <div class="max">/ 100</div>
+        </div>
+        <div class="verdict-title">${data.verdict}</div>
+      </div>
+      <div class="info-row">
+        <div class="label">FILE</div>
+        <div class="value">${data.filename} <span style="color:var(--text-dim); font-size:13px;">(${data.file_type})</span></div>
+      </div>
+      <div class="info-row">
+        <div class="label">SHA-256 FINGERPRINT</div>
+        <div class="hash">${data.sha256_hash}</div>
+      </div>
+      <div class="info-row">
+        <div class="label">FINDINGS</div>
+        <ul class="findings">${findingsHtml}</ul>
+      </div>
+      ${detailsHtml}
+      ${exhibitHtml}
+    `;
+  }
+
+  async function compareFiles() {
+    const fileA = document.getElementById('fileA');
+    const fileB = document.getElementById('fileB');
+    const resultDiv = document.getElementById('resultCompare');
+    const loading = document.getElementById('loadingCompare');
+    const btn = document.getElementById('compareBtn');
+
+    if (!fileA.files.length || !fileB.files.length) {
+      alert("Choose both files first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file_a', fileA.files[0]);
+    formData.append('file_b', fileB.files[0]);
+
+    resultDiv.style.display = 'none';
+    loading.style.display = 'block';
+    btn.disabled = true;
+
+    const response = await fetch('/compare', { method: 'POST', body: formData });
+    const data = await response.json();
+
+    loading.style.display = 'none';
+    btn.disabled = false;
+    resultDiv.style.display = 'block';
+
+    if (data.identical) {
+      resultDiv.innerHTML = `<div class="identical-banner">✓ ${data.note}</div>`;
+      return;
+    }
+
+    const diffImgHtml = data.diff_image_url ? `
+      <div class="info-row exhibit">
+        <div class="label">DIFFERENCE MAP</div>
+        <img src="${data.diff_image_url}">
+        <div class="cap">Bright regions show where the two files visually differ.</div>
+      </div>` : '';
+
+    resultDiv.innerHTML = `
+      <div class="diff-note">${data.note}</div>
+      <div class="info-row">
+        <div class="label">FILE A HASH</div>
+        <div class="hash">${data.hash_a}</div>
+      </div>
+      <div class="info-row">
+        <div class="label">FILE B HASH</div>
+        <div class="hash">${data.hash_b}</div>
+      </div>
+      ${diffImgHtml}
+    `;
+  }
+</script>
+</body>
+</html>
