@@ -435,7 +435,40 @@
       </div>
       ${detailsHtml}
       ${exhibitHtml}
+      <div class="info-row" style="text-align:center; padding-top:8px;">
+        <button class="btn-primary" style="border:none;" onclick="downloadCertificate()">Download Verification Certificate</button>
+      </div>
     `;
+
+    window.lastAnalysisData = data;
+  }
+
+  async function downloadCertificate() {
+    const data = window.lastAnalysisData;
+    if (!data) { alert("Analyze a file first."); return; }
+
+    const response = await fetch('/generate-certificate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: data.filename,
+        file_type: data.file_type,
+        sha256_hash: data.sha256_hash,
+        trust_score: data.trust_score,
+        verdict: data.verdict,
+        score_breakdown: data.score_breakdown
+      })
+    });
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `verification_certificate_${data.sha256_hash.slice(0,8)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
   }
 
   async function compareFiles() {
