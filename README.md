@@ -2,8 +2,10 @@
 
 **Problem Statement PR-ASCEND · NEXORA 2026 Innovation Hackathon**
 
-Screenshots, payment receipts, documents, and images can be manipulated in seconds — yet they're trusted as evidence every day. Verity analyzes a file's cryptographic fingerprint, hidden metadata, and pixel-level compression patterns to generate an **explainable Trust Score** and a **tamper-evident verification record**.
+Screenshots, payment receipts, documents, and images can be manipulated in seconds — yet they're trusted as evidence every day. Verity analyzes a file's cryptographic fingerprint, hidden metadata, and pixel-level compression patterns to generate an **explainable Trust Score** and a **verification record containing the file's cryptographic fingerprint, analysis findings, and Trust Score**.
+## 🚀 Live Demo
 
+**Live Application:** https://verity-4tgo.onrender.com
 ---
 
 ## What it does
@@ -19,6 +21,7 @@ Verity runs three independent forensic checks on every uploaded image or PDF, th
 
 ### Additional features
 
+- **Large-image handling** — automatically downscales very large uploads before forensic processing, improving reliability and performance on mobile devices
 - **Side-by-side comparison mode** — upload an original and a suspected-edited file to get a direct visual diff, highlighting exactly what changed and by how much
 - **PDF/document support** — not just images; receipts and documents are analyzed too
 - **Verification Certificate** — download a formatted PDF report with a case reference number, trust score, and full findings — a tamper-evident evidence record for every analysis
@@ -101,6 +104,12 @@ Then open **http://127.0.0.1:8080** in your browser.
 Verity detects **manipulation of real evidence** — edits made to a genuine photo or document after it was created. It does not attempt to classify whether an image is fully AI-generated from scratch, which is a separate problem requiring a different (trained classifier) approach.
 
 ---
+## ⚠️ Known Limitations
+
+- ELA works best with original digital image files.
+- Photos taken of screens, screenshots photographed by a camera, or repeatedly compressed images may show higher ELA variation because of recompression, lighting, and screen-pattern artifacts.
+- ELA is treated as one forensic signal and should be interpreted together with metadata, hashing, and OCR findings rather than as standalone proof of tampering.
+- Verity focuses on detecting manipulation of existing digital evidence; it does not determine whether an image was completely AI-generated.
 
 ## Team
 
