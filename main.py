@@ -106,6 +106,16 @@ async def upload_file(file: UploadFile = File(...)):
         if is_image:
             try:
                 original = Image.open(io.BytesIO(contents)).convert("RGB")
+
+                # Downscale very large images (e.g. full-resolution phone photos) before
+                # heavy processing — keeps analysis fast and avoids timeouts on
+                # resource-limited hosting, with negligible impact on detection quality.
+                max_dim = 1600
+                if max(original.size) > max_dim:
+                    ratio = max_dim / max(original.size)
+                    new_size = (int(original.size[0] * ratio), int(original.size[1] * ratio))
+                    original = original.resize(new_size)
+
                 resaved_bytes_io = io.BytesIO()
                 original.save(resaved_bytes_io, "JPEG", quality=90)
                 resaved_bytes_io.seek(0)
