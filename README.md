@@ -52,42 +52,44 @@ Verity runs three independent forensic checks on every uploaded image or PDF, th
 - **Frontend:** Vanilla HTML/CSS/JS (single-page, no framework dependency)
 
 ---
+## Architecture
+
 ```mermaid
 flowchart TD
     subgraph Client["Frontend Interface"]
         UI["Upload Interface\n(Web / Mobile Browser)"]
-        Display["Dashboard Results:\n• Trust Score (0-100)\n• Tamper Highlights\n• Forensic Audit Certificate"]
+        Display["Dashboard Results:\n• Trust Score (0-100)\n• Tamper Highlights\n• Verification Certificate"]
     end
-
-    subgraph Preprocess["Ingestion & Normalization Engine"]
-        Input["Document / Image Upload"] --> FormatCheck{"File Type Check"}
-        FormatCheck -->|PDF| PDFRaster["Render Pages to Images\n& Extract Text Streams"]
+    subgraph Preprocess["Ingestion & Normalization"]
+        Input["File Upload\n(Image or PDF)"] --> Hashing["SHA-256 Fingerprint"]
+        Hashing --> FormatCheck{"File Type Check"}
         FormatCheck -->|Image| ScaleCheck{"Exceeds Max Resolution?"}
-        PDFRaster --> ScaleCheck
-        ScaleCheck -->|Yes| Downscale["Adaptive Downscaling\n(Memory/OOM Protection)"]
-        ScaleCheck -->|No| Normalized["Normalized Image Buffer"]
+        ScaleCheck -->|Yes| Downscale["Adaptive Downscaling"]
+        ScaleCheck -->|No| Normalized["Normalized Image"]
         Downscale --> Normalized
+        FormatCheck -->|PDF| PDFMeta["Extract PDF Metadata\n(Producer, Dates, Page Count)"]
     end
-
-    subgraph Pipeline["Multi-Layer Forensic Pipeline"]
-        Normalized --> Hashing["1. Cryptographic Layer\n• SHA-256 Fingerprinting\n• Blockhash Check"]
-        Normalized --> Metadata["2. Metadata & Structure Layer\n• EXIF Header Parsing\n• Software Signatures\n• Edit History Timestamps"]
-        Normalized --> ELA["3. Pixel Forensic Layer\n• Error Level Analysis (ELA)\n• Compression Delta Detection\n• Regional Variance Mapping"]
-        Normalized --> OCR["4. Content Integrity Layer\n• Optical Character Recognition (OCR)\n• Text Inconsistency Detection"]
+    subgraph Pipeline["Image Forensic Pipeline"]
+        Normalized --> Metadata["EXIF Metadata Check\n(Software Signatures)"]
+        Normalized --> ELA["Error Level Analysis\n(Compression Delta + Hotspots)"]
+        Normalized --> OCR["OCR Text Check\n(Localized Text Tampering)"]
     end
-
+    subgraph Compare["Comparison Mode (Optional)"]
+        FileA["Original File"] --> HashCompare["Compare SHA-256"]
+        FileB["Suspected Edited File"] --> HashCompare
+        HashCompare -->|Match| Identical["Files Identical"]
+        HashCompare -->|Differ| DiffMap["Pixel Diff Map\n(% Area Changed)"]
+    end
     subgraph Scoring["Scoring & Verdict Engine"]
-        Hashing --> WeightedScoring["Rule-Based Aggregator & Penalty Calculator"]
-        Metadata --> WeightedScoring
+        Metadata --> WeightedScoring["Rule-Based Aggregator\n& Penalty Calculator"]
         ELA --> WeightedScoring
         OCR --> WeightedScoring
-        
-        WeightedScoring --> Aggregate["Calculate Final Trust Score (0-100)\nGenerate Visual Heatmap & Diff"]
-        Aggregate --> CertGen["Generate Signed Verification Certificate (PDF)"]
+        PDFMeta --> WeightedScoring
+        WeightedScoring --> Aggregate["Trust Score (0-100)\n+ Verdict"]
+        Aggregate --> CertGen["Generate Verification\nCertificate (PDF)"]
     end
-
     UI --> Input
-    CertGen --> Display 
+    CertGen --> Display
 ```
 ## How it works
 
