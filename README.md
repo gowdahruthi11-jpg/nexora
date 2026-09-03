@@ -52,7 +52,43 @@ Verity runs three independent forensic checks on every uploaded image or PDF, th
 - **Frontend:** Vanilla HTML/CSS/JS (single-page, no framework dependency)
 
 ---
+```mermaid
+flowchart TD
+    subgraph Client["Frontend Interface"]
+        UI["Upload Interface\n(Web / Mobile Browser)"]
+        Display["Dashboard Results:\n• Trust Score (0-100)\n• Tamper Highlights\n• Forensic Audit Certificate"]
+    end
 
+    subgraph Preprocess["Ingestion & Normalization Engine"]
+        Input["Document / Image Upload"] --> FormatCheck{"File Type Check"}
+        FormatCheck -->|PDF| PDFRaster["Render Pages to Images\n& Extract Text Streams"]
+        FormatCheck -->|Image| ScaleCheck{"Exceeds Max Resolution?"}
+        PDFRaster --> ScaleCheck
+        ScaleCheck -->|Yes| Downscale["Adaptive Downscaling\n(Memory/OOM Protection)"]
+        ScaleCheck -->|No| Normalized["Normalized Image Buffer"]
+        Downscale --> Normalized
+    end
+
+    subgraph Pipeline["Multi-Layer Forensic Pipeline"]
+        Normalized --> Hashing["1. Cryptographic Layer\n• SHA-256 Fingerprinting\n• Blockhash Check"]
+        Normalized --> Metadata["2. Metadata & Structure Layer\n• EXIF Header Parsing\n• Software Signatures\n• Edit History Timestamps"]
+        Normalized --> ELA["3. Pixel Forensic Layer\n• Error Level Analysis (ELA)\n• Compression Delta Detection\n• Regional Variance Mapping"]
+        Normalized --> OCR["4. Content Integrity Layer\n• Optical Character Recognition (OCR)\n• Text Inconsistency Detection"]
+    end
+
+    subgraph Scoring["Scoring & Verdict Engine"]
+        Hashing --> WeightedScoring["Rule-Based Aggregator & Penalty Calculator"]
+        Metadata --> WeightedScoring
+        ELA --> WeightedScoring
+        OCR --> WeightedScoring
+        
+        WeightedScoring --> Aggregate["Calculate Final Trust Score (0-100)\nGenerate Visual Heatmap & Diff"]
+        Aggregate --> CertGen["Generate Signed Verification Certificate (PDF)"]
+    end
+
+    UI --> Input
+    CertGen --> Display 
+```
 ## How it works
 
 1. A file is uploaded and hashed (SHA-256) — this fingerprint becomes the file's tamper-evident anchor.
